@@ -6,6 +6,7 @@
 #GLUONBRANCH - The autoupdater branch to use: stable, beta and so on
 #GLUONRELEASE - Release number to use for the images
 #BUILD_NUMBER - Usually passed by jenkins, used to build the GLUON_RELEASE string
+#COMMUNITIES - Communities to build the firmware for
 #VERBOSE - Set to 1 or 0 to enable or disable verbose building
 echo "---------------------------------------------------------------------------------------------------------"
 echo "Build ID: ${BUILD_NUMBER}"
@@ -14,47 +15,84 @@ echo "Gluon Release: ${GLUONRELEASE}"
 echo "Git tag/branch: ${TAG}"
 echo "Targets to build: $(echo $TARGETS | sed 's/,/ /g')"
 echo "Gluon release number will be: ${GLUONRELEASE}-${BUILD_NUMBER}"
+echo "Communities are: $(echo $COMMUNITIES | sed 's/,/ /g')"
 [ "${VERBOSE}" = "true" ] && echo "Verbose mode is ON"
-
-#Create output directory (So we can save log files there)
-mkdir -p output
 
 #Delete site config and clear output directory
 rm -rf site
-rm -rf output/*
+rm -rf output
 
-#Pull config based on selected GLUONBRANCH
-case "${GLUONBRANCH}" in
-    *)
-    echo "Gluon config branch: lede-dev"
-    git clone --branch lede-dev https://github.com/ffddorf/site-ddorf.git site >/dev/null 2>&1
-    echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
-    ;;
-esac
+#Create output & log directory
+mkdir -p output/logs
 
-echo "---------------------------------------------------------------------------------------------------------"
-
-echo "Running 'make update'"
-make update &> output/mkupdate.log
-
-for TARGET in $(echo $TARGETS | sed 's/,/ /g')
+#Build FW for all selected communities
+for COMMUNITY in $(echo $COMMUNITIES | sed 's/,/ /g')
 do
-    echo "Building Gluon Target: ${TARGET}"
-    if [ "${VERBOSE}" = "true" ]; then
-        make GLUON_BRANCH="${GLUONBRANCH}" GLUON_TARGET="${TARGET}" GLUON_RELEASE="${GLUONRELEASE}-${BUILD_NUMBER}" V=99 &> output/${TARGET}.log
-    else
-        make GLUON_BRANCH="${GLUONBRANCH}" GLUON_TARGET="${TARGET}" GLUON_RELEASE="${GLUONRELEASE}-${BUILD_NUMBER}" &> output/${TARGET}.log
-    fi
-done
+    #Pull config based on selected GLUONBRANCH
+    case "${COMMUNITY}" in
+        ddorf)
+            case "${GLUONBRANCH}" in
+                stable|beta)
+                    echo "Gluon config branch: ${TAG}"
+                    git clone --branch ${TAG} https://github.com/ffddorf/site-ddorf.git site >/dev/null 2>&1
+                    echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
+                ;;
+                *)
+                    echo "Gluon config branch: master"
+                    git clone https://github.com/ffddorf/site-ddorf.git site >/dev/null 2>&1
+                    echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
+                ;;
+            esac
+        ;;
+        neuss)
+            case "${GLUONBRANCH}" in
+                stable|beta)
+                    echo "Gluon config branch: ${TAG}"
+                    git clone --branch ${TAG} https://github.com/ffne/site-neuss.git site >/dev/null 2>&1
+                    echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
+                ;;
+                *)
+                    echo "Gluon config branch: master"
+                    git clone https://github.com/ffne/site-neuss.git site >/dev/null 2>&1
+                    echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
+                ;;
+            esac
+        ;;
+        *)
+            echo "Gluon config branch: lede-dev"
+            git clone --branch lede-dev https://github.com/ffddorf/site-ddorf.git site >/dev/null 2>&1
+            echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
+        ;;
+    esac
 
-echo "---------------------------------------------------------------------------------------------------------"
-echo "Building manifest"
-make manifest GLUON_RELEASE="${GLUONRELEASE}-${BUILD_NUMBER}" GLUON_BRANCH="${GLUONBRANCH}"
-echo "Copying site config to output directory"
-cp -r site output/ && rm -rf output/site/.git
-echo "Generating version.json"
-echo "{
-  \"version\": \"${GLUONRELEASE}\",
-  \"tag\": \"${TAG}\"
-}" > output/images/version.json
-echo "Buildscript done"
+    echo "---------------------------------------------------------------------------------------------------------"
+    echo "Building firmware for community: ${COMMUNITY}"
+    echo "Running 'make update'"
+    make update &> output/logs/mkupdate.log
+    
+    for TARGET in $(echo $TARGETS | sed 's/,/ /g')
+    do
+        echo "Building Gluon Target: ${TARGET}"
+        if [ "${VERBOSE}" = "true" ]; then
+            make GLUON_BRANCH="${GLUONBRANCH}" GLUON_TARGET="${TARGET}" GLUON_RELEASE="${GLUONRELEASE}-${BUILD_NUMBER}" V=99 &> output/logs/${TARGET}.log
+        else
+            make GLUON_BRANCH="${GLUONBRANCH}" GLUON_TARGET="${TARGET}" GLUON_RELEASE="${GLUONRELEASE}-${BUILD_NUMBER}" &> output/logs/${TARGET}.log
+        fi
+    done
+    
+    echo "---------------------------------------------------------------------------------------------------------"
+    echo "Building manifest"
+    make manifest GLUON_RELEASE="${GLUONRELEASE}-${BUILD_NUMBER}" GLUON_BRANCH="${GLUONBRANCH}"
+    echo "Copying release folder contents"
+    mkdir -p output/${COMMUNITY}/${GLUONBRANCH}
+    mv output/images/* output/${COMMUNITY}/${GLUONBRANCH}/
+    mv output/logs output/${COMMUNITY}/${GLUONBRANCH}/
+    cp -r site output/${COMMUNITY}/${GLUONBRANCH}/ && rm -rf output/${COMMUNITY}/${GLUONBRANCH}/site/.git
+    echo "Generating version.json"
+    echo "{
+    \"version\": \"${GLUONRELEASE}\",
+    \"tag\": \"${TAG}\"
+    }" > output/${COMMUNITY}/${GLUONBRANCH}/version.json
+    echo "Build for ${COMMUNITY} done"
+done
+echo "Buildscript finished"
