@@ -18,16 +18,21 @@ echo "Gluon release number will be: ${GLUONRELEASE}-${BUILD_NUMBER}"
 echo "Communities are: $(echo $COMMUNITIES | sed 's/,/ /g')"
 [ "${VERBOSE}" = "true" ] && echo "Verbose mode is ON"
 
-#Delete site config and clear output directory
-rm -rf site
-rm -rf output
-
-#Create output & log directory
-mkdir -p output/logs
+#Clear dist directory
+rm -rf dist/*
 
 #Build FW for all selected communities
 for COMMUNITY in $(echo $COMMUNITIES | sed 's/,/ /g')
 do
+    echo "---------------------------------------------------------------------------------------------------------"
+    echo "Building firmware for community: ${COMMUNITY}"
+    #Delete old site config folder and output directory 
+    rm -rf output
+    rm -rf site
+    
+    #(Re)Create output & log directory
+    mkdir -p output/logs
+    
     #Pull config based on selected GLUONBRANCH
     case "${COMMUNITY}" in
         ddorf)
@@ -65,8 +70,6 @@ do
         ;;
     esac
 
-    echo "---------------------------------------------------------------------------------------------------------"
-    echo "Building firmware for community: ${COMMUNITY}"
     echo "Running 'make update'"
     make update &> output/logs/mkupdate.log
     
@@ -79,20 +82,18 @@ do
             make GLUON_BRANCH="${GLUONBRANCH}" GLUON_TARGET="${TARGET}" GLUON_RELEASE="${GLUONRELEASE}-${BUILD_NUMBER}" &> output/logs/${TARGET}.log
         fi
     done
-    
-    echo "---------------------------------------------------------------------------------------------------------"
     echo "Building manifest"
     make manifest GLUON_RELEASE="${GLUONRELEASE}-${BUILD_NUMBER}" GLUON_BRANCH="${GLUONBRANCH}"
     echo "Copying release folder contents"
-    mkdir -p output/${COMMUNITY}/${GLUONBRANCH}
-    mv output/images/* output/${COMMUNITY}/${GLUONBRANCH}/
-    mv output/logs output/${COMMUNITY}/${GLUONBRANCH}/
-    cp -r site output/${COMMUNITY}/${GLUONBRANCH}/ && rm -rf output/${COMMUNITY}/${GLUONBRANCH}/site/.git
+    mkdir -p dist/${COMMUNITY}/${GLUONBRANCH}
+    mv output/images/* dist/${COMMUNITY}/${GLUONBRANCH}/
+    mv output/logs dist/${COMMUNITY}/${GLUONBRANCH}/
+    cp -r site dist/${COMMUNITY}/${GLUONBRANCH}/ && rm -rf dist/${COMMUNITY}/${GLUONBRANCH}/site/.git
     echo "Generating version.json"
     echo "{
     \"version\": \"${GLUONRELEASE}\",
     \"tag\": \"${TAG}\"
-    }" > output/${COMMUNITY}/${GLUONBRANCH}/version.json
+    }" > dist/${COMMUNITY}/${GLUONBRANCH}/version.json
     echo "Build for ${COMMUNITY} done"
 done
 echo "Buildscript finished"
