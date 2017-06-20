@@ -91,7 +91,7 @@ do
     cp -r site dist/${COMMUNITY}/${GLUONBRANCH}/ && rm -rf dist/${COMMUNITY}/${GLUONBRANCH}/site/.git
     echo "Generating version.json"
     echo "{
-    \"version\": \"${GLUONRELEASE}\",
+    \"version\": \"${GLUONRELEASE}-${BUILD_NUMBER}\",
     \"tag\": \"${TAG}\"
     }" > dist/${COMMUNITY}/${GLUONBRANCH}/version.json
     echo "Build for ${COMMUNITY} done"
