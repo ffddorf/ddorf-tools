@@ -37,13 +37,18 @@ do
     case "${COMMUNITY}" in
         ddorf)
             case "${GLUONBRANCH}" in
-                stable|beta)
-                    echo "Gluon config branch: ${TAG}"
+                stable)
+                    echo "Gluon config branch/tag: ${TAG}"
                     git clone --branch ${TAG} https://github.com/ffddorf/site-ddorf.git site >/dev/null 2>&1
                     echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
                 ;;
+                beta)
+                    echo "Gluon config branch/tag: Branch_${TAG}"
+                    git clone --branch Branch_${TAG} https://github.com/ffddorf/site-ddorf.git site >/dev/null 2>&1
+                    echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
+                ;;
                 *)
-                    echo "Gluon config branch: master"
+                    echo "Gluon config branch/tag: master"
                     git clone https://github.com/ffddorf/site-ddorf.git site >/dev/null 2>&1
                     echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
                 ;;
@@ -51,20 +56,25 @@ do
         ;;
         neuss)
             case "${GLUONBRANCH}" in
-                stable|beta)
-                    echo "Gluon config branch: ${TAG}"
+                stable)
+                    echo "Gluon config branch/tag: ${TAG}"
                     git clone --branch ${TAG} https://github.com/ffne/site-neuss.git site >/dev/null 2>&1
                     echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
                 ;;
+                beta)
+                    echo "Gluon config branch/tag: Branch_${TAG}"
+                    git clone --branch Branch_${TAG} https://github.com/ffne/site-neuss.git site >/dev/null 2>&1
+                    echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
+                ;;
                 *)
-                    echo "Gluon config branch: master"
+                    echo "Gluon config branch/tag: master"
                     git clone https://github.com/ffne/site-neuss.git site >/dev/null 2>&1
                     echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
                 ;;
             esac
         ;;
         *)
-            echo "Gluon config branch: lede-dev"
+            echo "Gluon config branch/tag: lede-dev"
             git clone --branch lede-dev https://github.com/ffddorf/site-ddorf.git site >/dev/null 2>&1
             echo "Gluon config commit ID: $(cd site && git rev-parse --verify HEAD)"
         ;;
